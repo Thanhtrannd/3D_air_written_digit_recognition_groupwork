@@ -30,13 +30,13 @@ fprintf("In order to achieve %d percent of total variance, " + ...
     "%d first components was selected.", threshold, toKeepIdx(end));
 
 % Visualization
-figure(1)
+figure
 pareto(explained);
 title('PCA pareto graph');
 xlabel('Principal Component');
 ylabel('Variance Explained (%)');
 
-figure(2)
+figure
 biplot(coeff(:,1:2),'Scores',scores(:,1:2));axis([-.2 1 -.4 1]);
 title('Principal component Biplot (two first components)');
 
