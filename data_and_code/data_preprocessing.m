@@ -28,7 +28,7 @@ extracted_data = feature_extraction(normalized_data,min_Ntimesteps);
 data = data_reallocation(extracted_data);
 
 %% Step 4: Clear temporary varibles (comment this if desired)
-clear extracted_data i min_Ntimesteps normalized_data nSamples;
+% clear extracted_data i min_Ntimesteps normalized_data nSamples;
 
 %% Step 5: Store preprocessed data for later constructing neural network model
 % (This step is commented out to avoid configuration in pre_processed training data set)
