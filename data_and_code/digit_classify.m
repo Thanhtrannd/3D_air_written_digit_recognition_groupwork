@@ -9,15 +9,14 @@ function C = digit_classify(mdl, new_sample)
     
     %% Turn sample data from a matrix to a cell array with one cell because
     % of input format of called functions
-    new_sample_cell ={}
-    new_sample_cell{1,1} = new_sample 
-%       test_datacell = testdata
+    new_sample_cell ={};
+    new_sample_cell{1,1} = new_sample;
     % number of timesteps (data points) of the given to-be-classified sample
-    nTimesteps = size(new_sample_cell{1},1) % Thay doi
+    nTimesteps = size(new_sample_cell{1},1);
     % Load data.mat
     load data.mat
-    load pca_output.mat
-
+    % Set flag to catch special case
+    IsSpecial = false;
     %% Step 1: Normalize data
     new_sample_cell = data_normalization(new_sample_cell);
     
@@ -28,13 +27,10 @@ function C = digit_classify(mdl, new_sample)
     % proceed feature extraction
     if nTimesteps > model_data_size
         new_sample_cell = feature_extraction(new_sample_cell, model_data_size);
-        new_sample_vec = data_reallocation(new_sample_cell);
-        new_sample_vec = pca_tranformation(new_sample_vec, coeff, mu, toKeepComponentsIdx);
-    elseif nTimesteps == model_data_size
-        new_sample_vec = data_reallocation(new_sample_cell);
-        new_sample_vec = pca_tranformation(new_sample_vec, coeff, mu, toKeepComponentsIdx);
     % SPECIAL CASE: MODEL RETRAINING NEEDED
-    elseif nTimesteps < model_data_size 
+    elseif nTimesteps < model_data_size
+        % Catch special case
+        IsSpecial = true;
         % There is no need to extract feature for the given test data
         % sample because its number of datapoints is the new standard
         %test_datacell = feature_extraction(test_datacell, nTimesteps);
@@ -46,16 +42,16 @@ function C = digit_classify(mdl, new_sample)
         [new_coeff, new_trainX, new_score, new_explained, new_mu, new_toKeepComponentsIdx] = pca_implementation(train_data, 98);
         % Retrain model and identify parameters
         new_mdl = fitcecoc(new_trainX,trainclass,'Learners',t_final,'FitPosterior',true,'ClassNames',0:9);
-        new_sample_vec = data_reallocation(new_sample_cell);
-        new_sample_vec = pca_tranformation(new_sample_vec, new_coeff, new_mu, new_toKeepComponentsIdx);
-        % check accuracy on traindata test set and print prompt
-%         fprintf("The accuracy of the model is %d.\n", sum(net_testclass==testclass_)/length(testclass_)); 
     end
     %% Step 3: Reallocate test data sample (turn a cell array with one cell into a column vector)
-   % new_sample_vec = data_reallocation(new_sample_cell);
+    new_sample_vec = data_reallocation(new_sample_cell);
     %% Step 4: PCA transformation
-    %load pca_output.mat
-   % new_sample_vec = pca_tranformation(new_sample_vec, coeff, mu, toKeepComponentsIdx);
+    if IsSpecial
+        new_sample_vec = pca_tranformation(new_sample_vec, new_coeff, new_mu, new_toKeepComponentsIdx);
+    else
+        load pca_output.mat
+        new_sample_vec = pca_tranformation(new_sample_vec, coeff, mu, toKeepComponentsIdx);
+    end
     %% Step 5: Predict label for input test data sample
     if nTimesteps < model_data_size
         % SPECIAL CASE: USE RETRAINED PARAMETERS
