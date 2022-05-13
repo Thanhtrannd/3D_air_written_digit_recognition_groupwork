@@ -1,4 +1,4 @@
-function C = digit_classify(mdl, testdata)
+function C = digit_classify(mdl, new_sample)
 %Function C = digit_classify(mdl, testdata) takes input as a matrix N*3 data sample
 % of an air-written digit collected by LeapMotion sensor and does the 
 % recognition of the written digit.
@@ -9,14 +9,17 @@ function C = digit_classify(mdl, testdata)
     
     %% Turn sample data from a matrix to a cell array with one cell because
     % of input format of called functions
-    test_datacell ={};
-    test_datacell{1,1} = testdata;
+    new_sample_cell ={}
+    new_sample_cell{1,1} = new_sample 
+%       test_datacell = testdata
     % number of timesteps (data points) of the given to-be-classified sample
-    nTimesteps = size(test_datacell{1},1); 
+    nTimesteps = size(new_sample_cell{1},1) % Thay doi
     % Load data.mat
-    load data.mat data class
+    load data.mat
+    load pca_output.mat
+
     %% Step 1: Normalize data
-    test_datacell = data_normalization(test_datacell);
+    new_sample_cell = data_normalization(new_sample_cell);
     
     %% Step 2: Extract features to ensure consistent size of data sample and
     model_data_size = size(data,2)/3;
@@ -24,38 +27,42 @@ function C = digit_classify(mdl, testdata)
     % data samples used to train the model, the testdata sample needs to
     % proceed feature extraction
     if nTimesteps > model_data_size
-        test_datacell = feature_extraction(test_datacell, model_data_size);
+        new_sample_cell = feature_extraction(new_sample_cell, model_data_size);
+        new_sample_vec = data_reallocation(new_sample_cell);
+        new_sample_vec = pca_tranformation(new_sample_vec, coeff, mu, toKeepComponentsIdx);
+    elseif nTimesteps == model_data_size
+        new_sample_vec = data_reallocation(new_sample_cell);
+        new_sample_vec = pca_tranformation(new_sample_vec, coeff, mu, toKeepComponentsIdx);
     % SPECIAL CASE: MODEL RETRAINING NEEDED
-    elseif nTimesteps < model_data_size %UPSAMPLING???
+    elseif nTimesteps < model_data_size 
         % There is no need to extract feature for the given test data
         % sample because its number of datapoints is the new standard
-%         test_datacell = feature_extraction(test_datacell, nTimesteps);
+        %test_datacell = feature_extraction(test_datacell, nTimesteps);
         % Repreprocess raw data
-        load raw_data.mat raw_data class
+        load raw_data.mat
         normalized_traindata = data_normalization(raw_data);
         extracted_traindata = feature_extraction(normalized_traindata,nTimesteps);
         train_data = data_reallocation(extracted_traindata);
-        [coeff, trainX, score, explained, mu, toKeepComponentsIdx] = pca_implementation(train_data, 98);
+        [new_coeff, new_trainX, new_score, new_explained, new_mu, new_toKeepComponentsIdx] = pca_implementation(train_data, 98);
         % Retrain model and identify parameters
-        mdl_method = class(mdl);
-        if mdl_method == 'ClassificationECOC'
-            disp('SVM Classification model retraining...')
-%TODO
-        end
+        new_mdl = fitcecoc(new_trainX,trainclass,'Learners',t_final,'FitPosterior',true,'ClassNames',0:9);
+        new_sample_vec = data_reallocation(new_sample_cell);
+        new_sample_vec = pca_tranformation(new_sample_vec, new_coeff, new_mu, new_toKeepComponentsIdx);
         % check accuracy on traindata test set and print prompt
 %         fprintf("The accuracy of the model is %d.\n", sum(net_testclass==testclass_)/length(testclass_)); 
     end
     %% Step 3: Reallocate test data sample (turn a cell array with one cell into a column vector)
-    test_datavec = data_reallocation(test_datacell);
-    load pca_output.mat
-    testX = pca_tranformation(testdata, coeff, mu, toKeepComponentsIdx);
-    %% Step 4: Predict label for input test data sample
+   % new_sample_vec = data_reallocation(new_sample_cell);
+    %% Step 4: PCA transformation
+    %load pca_output.mat
+   % new_sample_vec = pca_tranformation(new_sample_vec, coeff, mu, toKeepComponentsIdx);
+    %% Step 5: Predict label for input test data sample
     if nTimesteps < model_data_size
         % SPECIAL CASE: USE RETRAINED PARAMETERS
-        C = predict(new_mdl,test_datavec);
+        C = predict(new_mdl,new_sample_vec);
     else
         % NORMAL CASE: USE TRAINED PARAMETERS
-        C = predict(mdl,test_datavec);
+        C = predict(mdl,new_sample_vec);
     end
     
        
