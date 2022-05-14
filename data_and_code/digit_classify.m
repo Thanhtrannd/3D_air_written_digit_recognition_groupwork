@@ -3,7 +3,7 @@ function C = digit_classify(mdl, new_sample)
 % of an air-written digit collected by LeapMotion sensor and does the 
 % recognition of the written digit.
 %Input:
-%   testdata: a matrix N*3 data sample (N number of 3-D location datapoint trajectories)
+%   new_sample: a matrix N*3 data sample (N number of 3-D location datapoint trajectories)
 %Output:
 %   C: The label of the written digit predicted by the provided model
     
@@ -31,9 +31,9 @@ function C = digit_classify(mdl, new_sample)
     elseif nTimesteps < model_data_size
         % Catch special case
         IsSpecial = true;
-        % There is no need to extract feature for the given test data
+        % There is no need to extract feature for the given new data
         % sample because its number of datapoints is the new standard
-        %test_datacell = feature_extraction(test_datacell, nTimesteps);
+        
         % Repreprocess raw data
         load raw_data.mat
         normalized_traindata = data_normalization(raw_data);
